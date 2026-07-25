@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Друг</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f0f2f5; }
+    #chat { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; padding: 15px; height: 80vh; overflow-y: auto; }
+    .msg { margin: 10px 0; padding: 10px; border-radius: 15px; max-width: 80%; }
+    .user { background: #0084ff; color: white; margin-left: auto; text-align: right; }
+    .bot { background: #e4e6eb; }
+    #input-area { display: flex; margin-top: 10px; }
+    #messageInput { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; }
+    button { padding: 10px 20px; margin-left: 5px; background: #0084ff; color: white; border: none; border-radius: 25px; }
+  </style>
+</head>
+<body>
+  <div id="chat"></div>
+  <div id="input-area">
+    <input type="text" id="messageInput" placeholder="Напиши Другу...">
+    <button onclick="sendMessage()">➤</button>
+  </div>
+
+  <script>
+    const https://script.google.com/macros/s/AKfycbwmZ0Pj6auQc8arN4zHqFaoYgdSbXHqN-fdDDndHQlgWwRtIDTyNYIcV75DuH1TwWzE/exec = 'ЗАМЕНИ_НА_ТВОЙ_URL_СКРИПТА';
+    const USER_ID = '1'; // Потом можно динамически
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage('user', message);
+      input.value = '';
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ userID: USER_ID, message: message })
+        });
+        const data = await response.json();
+        addMessage('bot', data.reply);
+      } catch (e) {
+        addMessage('bot', 'Ой, что-то пошло не так...');
+      }
+    }
+
+    function addMessage(type, text) {
+      const chat = document.getElementById('chat');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg ' + type;
+      msgDiv.textContent = text;
+      chat.appendChild(msgDiv);
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
