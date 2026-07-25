@@ -1,0 +1,13 @@
+{
+  "name": "Друг",
+  "short_name": "Друг",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#0084ff",
+  "icons": [{
+    "src": "icon.png",
+    "sizes": "192x192",
+    "type": "image/png"
+  }]
+}
