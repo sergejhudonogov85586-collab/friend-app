@@ -2,59 +2,519 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0084ff">
   <title>Друг</title>
-  <link rel="manifest" href="manifest.json">
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f0f2f5; }
-    #chat { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; padding: 15px; height: 80vh; overflow-y: auto; }
-    .msg { margin: 10px 0; padding: 10px; border-radius: 15px; max-width: 80%; }
-    .user { background: #0084ff; color: white; margin-left: auto; text-align: right; }
-    .bot { background: #e4e6eb; }
-    #input-area { display: flex; margin-top: 10px; }
-    #messageInput { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; }
-    button { padding: 10px 20px; margin-left: 5px; background: #0084ff; color: white; border: none; border-radius: 25px; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+    #app {
+      width: 100%;
+      max-width: 500px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    @media (min-width: 768px) {
+      #app { max-width: 700px; }
+    }
+    /* Экран аутентификации */
+    #auth-screen {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+      background: white;
+    }
+    .auth-form input, .auth-form textarea {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      background: #fafafa;
+    }
+    .auth-form button {
+      background: #0084ff;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      padding: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .avatar-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .avatar-option {
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      border: 3px solid transparent;
+      cursor: pointer;
+    }
+    .avatar-option.selected {
+      border-color: #0084ff;
+      background: #e0edff;
+    }
+    .mature-row {
+      display: flex;
+      align-items: center;
+      margin: 16px 0;
+      height: 24px;
+    }
+    .mature-row input[type="checkbox"] {
+      margin: 0 8px 0 0;
+      width: 20px;
+      height: 20px;
+    }
+    #main-screen {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    #header {
+      background: #0084ff;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    #header-avatar { font-size: 32px; }
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .msg {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 20px;
+      max-width: 80%;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .msg.user { background: #0084ff; color: white; margin-left: auto; flex-direction: row-reverse; }
+    .msg.bot { background: #f0f0f0; }
+    .avatar-icon {
+      font-size: 28px;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #eee;
+      gap: 8px;
+      flex-shrink: 0;
+      background: white;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+    #messageInput {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      font-size: 16px;
+    }
+    #sendBtn {
+      padding: 12px 20px;
+      background: #0084ff;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #tab-bar {
+      display: flex;
+      border-top: 1px solid #eee;
+      background: white;
+      flex-shrink: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      color: #888;
+      font-size: 12px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    .tab-btn.active { color: #0084ff; }
+    .tab-btn span { display: block; font-size: 20px; }
+    .shop-item {
+      background: white;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .buy-btn {
+      background: #0084ff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div id="chat"></div>
-  <div id="input-area">
-    <input type="text" id="messageInput" placeholder="Напиши Другу...">
-    <button onclick="sendMessage()">➤</button>
+  <div id="app">
+    <div id="auth-screen">
+      <div id="auth-form" class="auth-form"></div>
+    </div>
+    <div id="main-screen" style="display: none;">
+      <div id="header">
+        <span id="header-avatar">😺</span>
+        <span id="header-name">Друг</span>
+      </div>
+      <div id="content">
+        <div id="chat-panel" class="panel active"></div>
+        <div id="tasks-panel" class="panel">
+          <h3>📝 Мои задачи</h3>
+          <div id="tasksList">Пока нет задач</div>
+          <button class="buy-btn" onclick="addTaskManually()" style="margin-top:10px; width:100%;">+ Добавить задачу</button>
+        </div>
+        <div id="games-panel" class="panel">
+          <h3>🎮 Игры</h3>
+          <div class="game-container">
+            <h4>Угадай число</h4>
+            <p id="gameMessage">Я загадал число от 1 до 100.</p>
+            <input type="number" id="guessInput" placeholder="Твой вариант">
+            <button class="buy-btn" onclick="checkGuess()">Проверить</button>
+          </div>
+        </div>
+        <div id="shop-panel" class="panel">
+          <h3>🛍️ Магазин</h3>
+          <div class="shop-item premium-card" style="background: linear-gradient(135deg, #0084ff, #00c6ff); color: white;">
+            <div><strong>Друг Premium</strong><br><small>Все функции, безлимит, темы</small></div>
+            <button class="buy-btn" style="background: white; color: #0084ff;" onclick="alert('Подписка 399₽/мес (прототип)')">399₽/мес</button>
+          </div>
+          <div class="shop-item">
+            <div><strong>Тема чата: Космос</strong></div>
+            <button class="buy-btn" onclick="alert('Куплено!')">99₽</button>
+          </div>
+          <div class="shop-item">
+            <div><strong>Аватар: Феникс</strong></div>
+            <button class="buy-btn" onclick="alert('Куплено!')">149₽</button>
+          </div>
+        </div>
+      </div>
+      <div id="input-area">
+        <input type="text" id="messageInput" placeholder="Напиши Другу...">
+        <button id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+      <div id="tab-bar">
+        <button class="tab-btn active" data-panel="chat-panel"><span>💬</span>Чат</button>
+        <button class="tab-btn" data-panel="tasks-panel"><span>📋</span>Задачи</button>
+        <button class="tab-btn" data-panel="games-panel"><span>🎮</span>Игры</button>
+        <button class="tab-btn" data-panel="shop-panel"><span>🛍️</span>Магазин</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    // ВСТАВЬ СЮДА СВОЙ НОВЫЙ URL СКРИПТА
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzg8dzayX4URnGBcu2aqkxGA5aFU5-3IcUR9ElhP4uDe1i6_TnmjVzh7ZZl7MYMO6WG/exec';
-    const USER_ID = '1'; // Можно сделать динамическим позже
+    const API_URL = 'https://script.google.com/macros/s/AKfycby2Kt7IsUUqxAcY8GrX8uJc8TJ2YOdCT8fb9OpcX83AIs6iw4WzfO0RlFTzDP8Pfpmd/exec';
 
-    async function sendMessage() {
-      const input = document.getElementById('messageInput');
-      const message = input.value.trim();
-      if (!message) return;
+    function setAppHeight() {
+      document.getElementById('app').style.height = window.innerHeight + 'px';
+    }
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('orientationchange', setAppHeight);
+    setAppHeight();
 
-      addMessage('user', message);
-      input.value = '';
+    const AVATARS = [
+      { id: 'cat', neutral: '😺', happy: '😸', thinking: '😼' },
+      { id: 'dog', neutral: '🐶', happy: '🐶😄', thinking: '🐶🤔' },
+      { id: 'fox', neutral: '🦊', happy: '🦊😊', thinking: '🦊🧐' },
+      { id: 'robot', neutral: '🤖', happy: '🤖✨', thinking: '🤖💭' },
+      { id: 'alien', neutral: '👽', happy: '👽😄', thinking: '👽❓' },
+      { id: 'dragon', neutral: '🐲', happy: '🐲🔥', thinking: '🐲💨' }
+    ];
 
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ userID: USER_ID, message: message })
+    let currentUser = null;
+    let dialogHistory = [];
+    let secretNumber = Math.floor(Math.random() * 100) + 1;
+
+    const authScreen = document.getElementById('auth-screen');
+    const mainScreen = document.getElementById('main-screen');
+    const authForm = document.getElementById('auth-form');
+
+    window.onload = () => {
+      const savedEmail = localStorage.getItem('friendEmail');
+      if (savedEmail) {
+        showLoginForm(savedEmail);
+      } else {
+        showRegistrationForm();
+      }
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const panelId = btn.dataset.panel;
+          document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+          document.getElementById(panelId).classList.add('active');
+          document.getElementById('input-area').style.display = (panelId === 'chat-panel') ? 'flex' : 'none';
         });
-        const data = await response.json();
-        addMessage('bot', data.reply);
-      } catch (e) {
-        addMessage('bot', 'Ой, что-то пошло не так...');
+      });
+    };
+
+    function showRegistrationForm() {
+      authForm.innerHTML = `
+        <h2>✨ Регистрация</h2>
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Пароль">
+        <input type="text" id="friendNameInput" placeholder="Имя друга">
+        <textarea id="characterInput" rows="2" placeholder="Характер (дерзкий, мудрый...)" style="width:100%; margin-bottom:12px; border-radius:12px; border:1px solid #ddd; padding:12px;"></textarea>
+        <input type="date" id="birthdateInput">
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <div class="mature-row">
+          <input type="checkbox" id="matureCheckbox" disabled>
+          <label for="matureCheckbox">Разрешить нецензурную лексику</label>
+        </div>
+        <button onclick="register()">Зарегистрироваться</button>
+        <p style="text-align:center;">Уже есть аккаунт? <a href="#" onclick="showLoginForm()">Войти</a></p>
+      `;
+      buildAvatarGrid('cat');
+      document.getElementById('birthdateInput').addEventListener('input', updateMatureCheckbox);
+      authScreen.style.display = 'flex';
+      mainScreen.style.display = 'none';
+    }
+
+    function showLoginForm(email = '') {
+      authForm.innerHTML = `
+        <h2>🔐 Вход</h2>
+        <input type="email" id="loginEmail" value="${email}" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Пароль">
+        <button onclick="login()">Войти</button>
+        <p style="text-align:center;">Нет аккаунта? <a href="#" onclick="showRegistrationForm()">Регистрация</a></p>
+      `;
+      authScreen.style.display = 'flex';
+      mainScreen.style.display = 'none';
+    }
+
+    function buildAvatarGrid(selectedId) {
+      const grid = document.getElementById('avatarGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      AVATARS.forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'avatar-option' + (a.id === selectedId ? ' selected' : '');
+        div.textContent = a.neutral;
+        div.onclick = () => {
+          grid.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+          div.classList.add('selected');
+        };
+        grid.appendChild(div);
+      });
+    }
+
+    function updateMatureCheckbox() {
+      const bdate = document.getElementById('birthdateInput').value;
+      const cb = document.getElementById('matureCheckbox');
+      if (!bdate) { cb.disabled = true; cb.checked = false; return; }
+      const age = Math.floor((new Date() - new Date(bdate)) / 31557600000);
+      cb.disabled = age < 18;
+      if (age < 18) cb.checked = false;
+    }
+
+    function showMain() {
+      authScreen.style.display = 'none';
+      mainScreen.style.display = 'flex';
+      document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
+      document.getElementById('header-name').textContent = currentUser.name;
+      document.getElementById('chat-panel').classList.add('active');
+      document.getElementById('input-area').style.display = 'flex';
+    }
+
+    function getAvatarEmotion(id, emotion) {
+      const av = AVATARS.find(a => a.id === id);
+      return av ? (av[emotion] || av.neutral) : '😺';
+    }
+
+    function addMessage(type, text, avatarId, emotion = 'neutral') {
+      const chat = document.getElementById('chat-panel');
+      const div = document.createElement('div');
+      div.className = 'msg ' + type;
+      if (type === 'bot') {
+        const icon = document.createElement('span');
+        icon.className = 'avatar-icon';
+        icon.textContent = getAvatarEmotion(avatarId || currentUser.avatar, emotion);
+        div.appendChild(icon);
+        const span = document.createElement('span');
+        span.textContent = text;
+        div.appendChild(span);
+      } else {
+        div.textContent = text;
+      }
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    async function register() {
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const name = document.getElementById('friendNameInput').value.trim() || 'Друг';
+      const character = document.getElementById('characterInput').value.trim() || '';
+      const birthdate = document.getElementById('birthdateInput').value;
+      const mature = document.getElementById('matureCheckbox');
+      const matureAllowed = !mature.disabled && mature.checked;
+      const selectedAvatar = document.querySelector('.avatar-option.selected')?.dataset.id || 'cat';
+      if (!email || !password) { alert('Введите email и пароль'); return; }
+      
+      const res = await fetch(`${API_URL}?action=register`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password, name, character, birthdate, avatar: selectedAvatar }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const r = await res.json();
+      if (r.success) {
+        localStorage.setItem('friendEmail', email);
+        currentUser = { email, name, character, birthdate, avatar: selectedAvatar, matureAllowed };
+        showMain();
+        addMessage('bot', `Привет! Я ${name}, давай общаться 😊`, selectedAvatar);
+      } else {
+        alert(r.message);
       }
     }
 
-    function addMessage(type, text) {
-      const chat = document.getElementById('chat');
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'msg ' + type;
-      msgDiv.textContent = text;
-      chat.appendChild(msgDiv);
-      chat.scrollTop = chat.scrollHeight;
+    async function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!email || !password) { alert('Введите email и пароль'); return; }
+      const res = await fetch(`${API_URL}?action=login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const r = await res.json();
+      if (r.success) {
+        localStorage.setItem('friendEmail', email);
+        currentUser = {
+          email: email,
+          name: r.profile.name,
+          character: r.profile.character,
+          birthdate: r.profile.birthdate,
+          avatar: r.profile.avatar,
+          matureAllowed: (new Date().getFullYear() - new Date(r.profile.birthdate).getFullYear()) >= 18
+        };
+        showMain();
+        addMessage('bot', `С возвращением! Я ${currentUser.name} 😊`, currentUser.avatar);
+      } else {
+        alert(r.message);
+      }
+    }
+
+    async function sendMessage() {
+      if (!currentUser) return;
+      const input = document.getElementById('messageInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      addMessage('user', msg);
+      dialogHistory.push({ role: 'user', text: msg });
+      input.value = '';
+
+      const typingMsg = addMessage('bot', 'Друг печатает...', currentUser.avatar, 'thinking');
+      const res = await fetch(`${API_URL}?action=chat`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: msg,
+          friendName: currentUser.name,
+          character: currentUser.character,
+          allowMature: currentUser.matureAllowed,
+          email: currentUser.email,
+          history: dialogHistory.slice(0, -1)
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      typingMsg.querySelector('span:last-child').textContent = data.reply;
+      const av = typingMsg.querySelector('.avatar-icon');
+      if (av) {
+        let emotion = 'neutral';
+        if (data.reply.match(/[😄😂🤣😊😁]/)) emotion = 'happy';
+        else if (data.reply.match(/[🤔❓💭]/)) emotion = 'thinking';
+        av.textContent = getAvatarEmotion(currentUser.avatar, emotion);
+      }
+      dialogHistory.push({ role: 'assistant', text: data.reply });
+    }
+
+    function checkGuess() {
+      const guess = parseInt(document.getElementById('guessInput').value);
+      const msg = document.getElementById('gameMessage');
+      if (guess === secretNumber) {
+        msg.textContent = 'Поздравляю! Ты угадал! Загадано новое число.';
+        secretNumber = Math.floor(Math.random() * 100) + 1;
+      } else if (guess > secretNumber) {
+        msg.textContent = 'Меньше!';
+      } else {
+        msg.textContent = 'Больше!';
+      }
+    }
+
+    function addTaskManually() {
+      const task = prompt('Введите задачу:');
+      if (task) {
+        const list = document.getElementById('tasksList');
+        if (list.textContent === 'Пока нет задач') list.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'task-item';
+        div.textContent = task;
+        list.appendChild(div);
+        sendMessage(); // отправим "Добавить задачу ..." в чат
+        const input = document.getElementById('messageInput');
+        input.value = `Добавить задачу ${task}`;
+        sendMessage();
+      }
     }
   </script>
 </body>
