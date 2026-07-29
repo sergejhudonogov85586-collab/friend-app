@@ -168,28 +168,31 @@
     document.getElementById('voiceBtn').style.display = 'inline-block';
   }
 
-  // ========== ФУНКЦИИ ТЕМ ==========
+  // Функции тем — теперь точно работают
   function setTheme(theme) {
     document.body.classList.remove('dark', 'cosmic');
     if (theme === 'dark') document.body.classList.add('dark');
     else if (theme === 'cosmic') document.body.classList.add('cosmic');
     localStorage.setItem('theme', theme);
+    alert('Тема «' + (theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Космическая') + '» применена!');
   }
   function setChatTheme(theme) {
     document.body.classList.remove('chat-modern', 'chat-soft');
     if (theme === 'modern') document.body.classList.add('chat-modern');
     else if (theme === 'soft') document.body.classList.add('chat-soft');
     localStorage.setItem('chatTheme', theme);
+    alert('Тема чата «' + (theme === 'bubbles' ? 'Bubbles' : theme === 'modern' ? 'Modern' : 'Soft') + '» применена!');
   }
   function setTasksTheme(theme) {
     document.body.classList.remove('notebook', 'glass');
     if (theme === 'notebook') document.body.classList.add('notebook');
     else if (theme === 'glass') document.body.classList.add('glass');
     localStorage.setItem('tasksTheme', theme);
+    alert('Тема ежедневника «' + (theme === 'minimal' ? 'Minimal' : theme === 'notebook' ? 'Notebook' : 'Glass') + '» применена!');
   }
 
-  // Загружаем только сохранённые темы
-  (function() {
+  // Загружаем темы ОДИН раз после входа, а не при загрузке страницы
+  function loadThemes() {
     const t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark');
     else if (t === 'cosmic') document.body.classList.add('cosmic');
@@ -199,7 +202,7 @@
     const tt = localStorage.getItem('tasksTheme');
     if (tt === 'notebook') document.body.classList.add('notebook');
     else if (tt === 'glass') document.body.classList.add('glass');
-  })();
+  }
 
   function toggleTheme() {
     if (document.body.classList.contains('cosmic')) setTheme('dark');
@@ -274,6 +277,7 @@
     document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
     document.getElementById('chat-panel').classList.add('active');
     document.getElementById('input-area').style.display = 'flex';
+    loadThemes(); // Применяем темы после входа
   }
   function getAvatarEmotion(id, emotion) { if (!id) id = 'cat'; const av = AVATARS.find(a => a.id === id); return av ? (av[emotion] || av.neutral) : '😺'; }
   function addMessage(type, text, avatarId, emotion = 'neutral') {
