@@ -42,13 +42,27 @@
     .shop-item { background:white; padding:15px; margin-bottom:12px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
     .buy-btn { background:#0084ff; color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; }
     .hidden { display:none; }
-    /* Календарь */
-    #calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    #calendar div { padding: 8px; text-align: center; background: #f0f0f0; border-radius: 8px; }
-    #calendar .today { background: #0084ff; color: white; }
-    /* Крестики-нолики */
-    #tic-tac-toe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; }
-    #tic-tac-toe div { aspect-ratio: 1; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; border-radius: 8px; }
+    /* Тёмная тема */
+    body.dark { background:#1e1e1e; }
+    body.dark #app { background:#2d2d2d; color:#eee; }
+    body.dark #auth-screen { background:#2d2d2d; }
+    body.dark #main-screen { background:#2d2d2d; }
+    body.dark #header { background:#1a1a1a; }
+    body.dark #input-area { background:#2d2d2d; border-color:#444; }
+    body.dark #messageInput { background:#3a3a3a; border-color:#555; color:#eee; }
+    body.dark #tab-bar { background:#2d2d2d; border-color:#444; }
+    body.dark .msg.bot { background:#3a3a3a; }
+    body.dark .tab-btn { color:#aaa; }
+    body.dark .tab-btn.active { color:#0084ff; }
+    /* Модальное окно календаря */
+    #calendarModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+    #calendarModal.active { display:flex; }
+    #calendarBox { background:white; border-radius:16px; padding:20px; width:90%; max-width:350px; }
+    body.dark #calendarBox { background:#2d2d2d; }
+    #calendarGrid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    #calendarGrid div { padding:8px; text-align:center; border-radius:8px; cursor:pointer; }
+    #calendarGrid .holiday { color:red; }
+    #calendarGrid .today { background:#0084ff; color:white; }
   </style>
 </head>
 <body>
@@ -60,13 +74,13 @@
     <div id="header">
       <span id="header-avatar">😺</span>
       <span id="header-name">Друг</span>
+      <button onclick="toggleTheme()" style="margin-left:auto; background:none; border:none; color:white; font-size:20px;">🌓</button>
     </div>
     <div id="content">
       <div id="chat-panel" class="panel active"></div>
       <div id="tasks-panel" class="panel">
         <h3>📝 Ежедневник</h3>
-        <div id="calendar"></div>
-        <h4>Мои задачи</h4>
+        <button class="buy-btn" onclick="openCalendar()" style="margin-bottom:10px;">📅 Выбрать дату</button>
         <div id="tasksList">Пока нет задач</div>
         <button class="buy-btn" onclick="addTaskManually()" style="margin-top:10px; width:100%;">+ Добавить задачу</button>
       </div>
@@ -114,6 +128,14 @@
   </div>
 </div>
 
+<div id="calendarModal">
+  <div id="calendarBox">
+    <h3>Выберите дату</h3>
+    <div id="calendarGrid"></div>
+    <button class="buy-btn" onclick="closeCalendar()" style="margin-top:10px; width:100%;">Закрыть</button>
+  </div>
+</div>
+
 <script>
   const SUPABASE_URL = 'https://pvofbfvqhwkvrhnoqugc.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Ei3qoPtQnf3eH3aKf93h8w_F902ErzV';
@@ -150,16 +172,53 @@
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(panelId).classList.add('active');
         document.getElementById('input-area').style.display = (panelId === 'chat-panel') ? 'flex' : 'none';
-        if (panelId === 'tasks-panel') renderCalendar();
         if (panelId === 'games-panel') renderTicTacToe();
       });
     });
-    if (document.getElementById('chat-panel').classList.contains('active')) {
-      document.getElementById('input-area').style.display = 'flex';
-    }
   };
 
-  // ========== АВТОРИЗАЦИЯ ==========
+  // Тема
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+  }
+  if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+
+  // Календарь
+  function openCalendar() {
+    document.getElementById('calendarModal').classList.add('active');
+    renderCalendarGrid();
+  }
+  function closeCalendar() {
+    document.getElementById('calendarModal').classList.remove('active');
+  }
+  function renderCalendarGrid() {
+    const grid = document.getElementById('calendarGrid');
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay() || 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const holidays = { '1': 'Новый год', '7': 'Рождество', '23': 'День защитника', '8': '8 Марта', '1.5': 'Праздник Весны', '9': 'День Победы', '12': 'День России', '4': 'День народного единства' };
+    let html = '<div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>';
+    for (let i = 1; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = d + '.' + (month + 1);
+      const isHoliday = holidays[dateStr] || holidays[d.toString()];
+      const cls = (d === today.getDate()) ? 'today' : '';
+      const holidayCls = isHoliday ? 'holiday' : '';
+      html += `<div class="${cls} ${holidayCls}" onclick="selectDate(${d})">${d}${isHoliday ? '<br><small>'+isHoliday+'</small>' : ''}</div>`;
+    }
+    grid.innerHTML = html;
+  }
+  function selectDate(day) {
+    const today = new Date();
+    const selected = new Date(today.getFullYear(), today.getMonth(), day);
+    alert('Выбрана дата: ' + selected.toLocaleDateString());
+    closeCalendar();
+  }
+
+  // Регистрация / вход
   function showRegistrationForm() {
     authForm.innerHTML = '<h2>✨ Регистрация</h2>' +
       '<input id="regEmail" placeholder="Email">' +
@@ -168,10 +227,7 @@
       '<textarea id="characterInput" rows="2" placeholder="Характер (дерзкий, мудрый...)" style="width:100%; margin-bottom:12px; border-radius:12px; border:1px solid #ddd; padding:12px;"></textarea>' +
       '<input type="date" id="birthdateInput">' +
       '<div class="avatar-grid" id="avatarGrid"></div>' +
-      '<div class="mature-row">' +
-      '<input type="checkbox" id="matureCheckbox" disabled>' +
-      '<label for="matureCheckbox">Разрешить нецензурную лексику</label>' +
-      '</div>' +
+      '<div class="mature-row"><input type="checkbox" id="matureCheckbox" disabled><label for="matureCheckbox">Разрешить нецензурную лексику</label></div>' +
       '<button onclick="register()">Зарегистрироваться</button>' +
       '<p style="text-align:center;">Уже есть аккаунт? <a href="#" onclick="showLoginForm();return false;">Войти</a></p>';
     buildAvatarGrid('cat');
@@ -187,6 +243,53 @@
       '<p style="text-align:center;">Нет аккаунта? <a href="#" onclick="showRegistrationForm();return false;">Регистрация</a></p>';
     authScreen.classList.remove('hidden');
     mainScreen.classList.add('hidden');
+  }
+  function buildAvatarGrid(selectedId) {
+    const grid = document.getElementById('avatarGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    AVATARS.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'avatar-option' + (a.id === selectedId ? ' selected' : '');
+      div.textContent = a.neutral;
+      div.onclick = () => { grid.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected')); div.classList.add('selected'); };
+      grid.appendChild(div);
+    });
+  }
+  function updateMatureCheckbox() {
+    const bdate = document.getElementById('birthdateInput').value;
+    const cb = document.getElementById('matureCheckbox');
+    if (!bdate) { cb.disabled = true; cb.checked = false; return; }
+    const age = Math.floor((new Date() - new Date(bdate)) / 31557600000);
+    cb.disabled = age < 18;
+    if (age < 18) cb.checked = false;
+  }
+  function showMain() {
+    authScreen.classList.add('hidden');
+    mainScreen.classList.remove('hidden');
+    document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
+    document.getElementById('header-name').textContent = currentUser.name;
+  }
+  function getAvatarEmotion(id, emotion) {
+    const av = AVATARS.find(a => a.id === id);
+    return av ? (av[emotion] || av.neutral) : '😺';
+  }
+  function addMessage(type, text, avatarId, emotion = 'neutral') {
+    const chat = document.getElementById('chat-panel');
+    const div = document.createElement('div');
+    div.className = 'msg ' + type;
+    if (type === 'bot') {
+      const icon = document.createElement('span');
+      icon.className = 'avatar-icon';
+      icon.textContent = getAvatarEmotion(avatarId || currentUser.avatar, emotion);
+      div.appendChild(icon);
+      const span = document.createElement('span');
+      span.textContent = text;
+      div.appendChild(span);
+    } else { div.textContent = text; }
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
   }
   async function register() {
     const email = document.getElementById('regEmail').value.trim();
@@ -237,36 +340,7 @@
     } catch (e) { alert('Сетевая ошибка: ' + e.message); }
   }
 
-  // ========== ИНТЕРФЕЙС ==========
-  function showMain() {
-    authScreen.classList.add('hidden');
-    mainScreen.classList.remove('hidden');
-    document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
-    document.getElementById('header-name').textContent = currentUser.name;
-  }
-  function getAvatarEmotion(id, emotion) {
-    const av = AVATARS.find(a => a.id === id);
-    return av ? (av[emotion] || av.neutral) : '😺';
-  }
-  function addMessage(type, text, avatarId, emotion = 'neutral') {
-    const chat = document.getElementById('chat-panel');
-    const div = document.createElement('div');
-    div.className = 'msg ' + type;
-    if (type === 'bot') {
-      const icon = document.createElement('span');
-      icon.className = 'avatar-icon';
-      icon.textContent = getAvatarEmotion(avatarId || currentUser.avatar, emotion);
-      div.appendChild(icon);
-      const span = document.createElement('span');
-      span.textContent = text;
-      div.appendChild(span);
-    } else { div.textContent = text; }
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-    return div;
-  }
-
-  // ========== ЧАТ С AI ==========
+  // Чат
   async function sendMessage() {
     if (!currentUser) return;
     const input = document.getElementById('messageInput');
@@ -285,7 +359,8 @@
           friendName: currentUser.name,
           character: currentUser.character,
           allowMature: currentUser.matureAllowed,
-          history: dialogHistory.slice(-20) // передаём последние 20 сообщений для контекста
+          history: dialogHistory.slice(-30),
+          email: currentUser.email
         })
       });
       const data = await res.json();
@@ -302,14 +377,12 @@
     } catch (e) { typingMsg.querySelector('span:last-child').textContent = 'Ошибка соединения'; }
   }
 
-  // ========== ИГРЫ ==========
+  // Игры
   function checkGuess() {
     const guess = parseInt(document.getElementById('guessInput').value);
     const msg = document.getElementById('gameMessage');
-    if (guess === secretNumber) {
-      msg.textContent = 'Поздравляю! Ты угадал! Загадано новое число.';
-      secretNumber = Math.floor(Math.random() * 100) + 1;
-    } else if (guess > secretNumber) { msg.textContent = 'Меньше!'; }
+    if (guess === secretNumber) { msg.textContent = 'Поздравляю! Ты угадал! Загадано новое число.'; secretNumber = Math.floor(Math.random() * 100) + 1; }
+    else if (guess > secretNumber) { msg.textContent = 'Меньше!'; }
     else { msg.textContent = 'Больше!'; }
   }
   function renderTicTacToe() {
@@ -328,41 +401,17 @@
     tttTurn = tttTurn === 'X' ? 'O' : 'X';
     renderTicTacToe();
     const winner = checkTTTWin();
-    if (winner) {
-      document.getElementById('tttMessage').textContent = winner === 'draw' ? 'Ничья!' : `Победил ${winner}!`;
-    }
+    if (winner) { document.getElementById('tttMessage').textContent = winner === 'draw' ? 'Ничья!' : `Победил ${winner}!`; }
   }
   function checkTTTWin() {
     const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    for (let line of lines) {
-      if (tttBoard[line[0]] && tttBoard[line[0]] === tttBoard[line[1]] && tttBoard[line[0]] === tttBoard[line[2]]) return tttBoard[line[0]];
-    }
+    for (let line of lines) { if (tttBoard[line[0]] && tttBoard[line[0]] === tttBoard[line[1]] && tttBoard[line[0]] === tttBoard[line[2]]) return tttBoard[line[0]]; }
     if (tttBoard.every(cell => cell)) return 'draw';
     return null;
   }
-  function resetTicTacToe() {
-    tttBoard = ['', '', '', '', '', '', '', '', ''];
-    tttTurn = 'X';
-    document.getElementById('tttMessage').textContent = '';
-    renderTicTacToe();
-  }
+  function resetTicTacToe() { tttBoard = ['', '', '', '', '', '', '', '', '']; tttTurn = 'X'; document.getElementById('tttMessage').textContent = ''; renderTicTacToe(); }
 
-  // ========== ЕЖЕДНЕВНИК ==========
-  function renderCalendar() {
-    const cal = document.getElementById('calendar');
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1).getDay() || 7;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    let html = '<div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>';
-    for (let i = 1; i < firstDay; i++) html += '<div></div>';
-    for (let d = 1; d <= daysInMonth; d++) {
-      const cls = (d === today.getDate()) ? 'today' : '';
-      html += `<div class="${cls}">${d}</div>`;
-    }
-    cal.innerHTML = html;
-  }
+  // Ежедневник
   function addTaskManually() {
     const task = prompt('Введите задачу:');
     if (task) {
