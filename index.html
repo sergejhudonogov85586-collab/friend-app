@@ -19,8 +19,9 @@
     .avatar-grid { display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
     .avatar-option { width:60px; height:60px; border-radius:30px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; font-size:30px; border:3px solid transparent; cursor:pointer; }
     .avatar-option.selected { border-color:#0084ff; background:#e0edff; }
-    .mature-row { display:flex; align-items:center; margin:16px 0; height:24px; }
-    .mature-row input[type="checkbox"] { margin:0 8px 0 0; width:20px; height:20px; }
+    .mature-row { display:flex; align-items:center; margin:16px 0; gap:8px; }
+    .mature-row input[type="checkbox"] { width:20px; height:20px; margin:0; }
+    .mature-row label { margin:0; font-size:14px; }
     #main-screen { background:white; }
     #header { background:#0084ff; color:white; padding:12px 16px; display:flex; align-items:center; gap:10px; font-size:20px; font-weight:600; }
     #header-avatar { font-size:32px; }
@@ -99,9 +100,11 @@
 </div>
 
 <script>
-  // Supabase настройки (уже с твоими ключами)
+  // Конфигурация Supabase
   const SUPABASE_URL = 'https://pvofbfvqhwkvrhnoqugc.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Ei3qoPtQnf3eH3aKf93h8w_F902ErzV';
+  // URL для AI-чата (временно заглушка, позже заменим на Edge Function)
+  const AI_CHAT_URL = null; // 'https://pvofbfvqhwkvrhnoqugc.supabase.co/functions/v1/ai-chat'
 
   const AVATARS = [
     { id: 'cat', neutral: '😺', happy: '😸', thinking: '😼' },
@@ -147,7 +150,10 @@
       '<textarea id="characterInput" rows="2" placeholder="Характер (дерзкий, мудрый...)" style="width:100%; margin-bottom:12px; border-radius:12px; border:1px solid #ddd; padding:12px;"></textarea>' +
       '<input type="date" id="birthdateInput">' +
       '<div class="avatar-grid" id="avatarGrid"></div>' +
-      '<div class="mature-row"><input type="checkbox" id="matureCheckbox" disabled><label for="matureCheckbox">Разрешить нецензурную лексику</label></div>' +
+      '<div class="mature-row">' +
+      '<input type="checkbox" id="matureCheckbox" disabled>' +
+      '<label for="matureCheckbox">Разрешить нецензурную лексику</label>' +
+      '</div>' +
       '<button onclick="register()">Зарегистрироваться</button>' +
       '<p style="text-align:center;">Уже есть аккаунт? <a href="#" onclick="showLoginForm();return false;">Войти</a></p>';
     buildAvatarGrid('cat');
@@ -302,17 +308,52 @@
     }
   }
 
-  // Временный чат-заглушка (пока не подключим AI)
-  function sendMessage() {
+  // AI-чат (если AI_CHAT_URL задан – используется Edge Function, иначе заглушка)
+  async function sendMessage() {
     if (!currentUser) return;
     const input = document.getElementById('messageInput');
     const msg = input.value.trim();
     if (!msg) return;
     addMessage('user', msg);
+    dialogHistory.push({ role: 'user', text: msg });
     input.value = '';
-    setTimeout(() => {
-      addMessage('bot', 'Вы написали: «' + msg + '». Чат скоро заработает!', currentUser.avatar, 'happy');
-    }, 500);
+
+    const typingMsg = addMessage('bot', 'Друг печатает...', currentUser.avatar, 'thinking');
+
+    if (AI_CHAT_URL) {
+      try {
+        const res = await fetch(AI_CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg,
+            friendName: currentUser.name,
+            character: currentUser.character,
+            allowMature: currentUser.matureAllowed,
+            history: dialogHistory.slice(-10)
+          })
+        });
+        const data = await res.json();
+        const reply = data.reply || 'Прости, я задумался...';
+        typingMsg.querySelector('span:last-child').textContent = reply;
+        const av = typingMsg.querySelector('.avatar-icon');
+        if (av) {
+          let emotion = 'neutral';
+          if (reply.match(/[😄😂🤣😊😁]/)) emotion = 'happy';
+          else if (reply.match(/[🤔❓💭]/)) emotion = 'thinking';
+          av.textContent = getAvatarEmotion(currentUser.avatar, emotion);
+        }
+        dialogHistory.push({ role: 'assistant', text: reply });
+      } catch (e) {
+        typingMsg.querySelector('span:last-child').textContent = 'Ошибка соединения';
+      }
+    } else {
+      // Заглушка
+      setTimeout(() => {
+        typingMsg.querySelector('span:last-child').textContent = 'Это эхо: «' + msg + '». AI-чат появится после развёртывания функции.';
+        typingMsg.querySelector('.avatar-icon').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
+      }, 500);
+    }
   }
 
   function checkGuess() {
