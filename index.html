@@ -22,14 +22,15 @@
     body { display: flex; justify-content: center; align-items: stretch; }
     #app { width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
     .screen { height: 100%; display: flex; flex-direction: column; }
-    #auth-screen { padding: 20px; background: var(--card); }
+    #auth-screen { padding: 20px; background: var(--card); overflow-y: auto; }
     #auth-screen input, #auth-screen textarea { width: 100%; padding: 14px; margin-bottom: 12px; border: none; border-radius: 16px; font-size: 16px; background: #f2f2f7; }
     #auth-screen button { background: var(--blue); color: white; border: none; border-radius: 20px; padding: 16px; font-size: 17px; font-weight: 600; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,132,255,0.3); }
     .avatar-grid { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
     .avatar-option { width: 64px; height: 64px; border-radius: 50%; background: #f2f2f7; display: flex; align-items: center; justify-content: center; font-size: 32px; border: 3px solid transparent; cursor: pointer; transition: 0.2s; }
     .avatar-option.selected { border-color: var(--blue); background: #e8f0fe; transform: scale(1.1); }
-    .mature-row { display: flex; align-items: center; margin: 16px 0; gap: 8px; }
-    .mature-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+    .mature-row { display: flex; align-items: center; margin: 16px 0; gap: 8px; flex-wrap: nowrap; }
+    .mature-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; }
+    .mature-row label { font-size: 14px; line-height: 1.2; }
     #main-screen { background: var(--card); display: flex; flex-direction: column; height: 100%; }
     #header { background: var(--glass); backdrop-filter: blur(20px); color: var(--text); padding: 16px 20px; display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; border-bottom: 1px solid rgba(0,0,0,0.05); }
     #header-avatar { width: 44px; height: 44px; font-size: 32px; display: flex; align-items: center; justify-content: center; }
@@ -167,30 +168,24 @@
     document.getElementById('voiceBtn').style.display = 'inline-block';
   }
 
-  // ========== УПРАВЛЕНИЕ ТЕМАМИ ==========
   function setTheme(theme) {
     document.body.classList.remove('dark', 'cosmic');
     if (theme === 'dark') document.body.classList.add('dark');
     else if (theme === 'cosmic') document.body.classList.add('cosmic');
     localStorage.setItem('theme', theme);
-    alert('Тема «' + (theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Космическая') + '» применена!');
   }
   function setChatTheme(theme) {
     document.body.classList.remove('chat-modern', 'chat-soft');
     if (theme === 'modern') document.body.classList.add('chat-modern');
     else if (theme === 'soft') document.body.classList.add('chat-soft');
     localStorage.setItem('chatTheme', theme);
-    alert('Тема чата «' + (theme === 'bubbles' ? 'Bubbles' : theme === 'modern' ? 'Modern' : 'Soft') + '» применена!');
   }
   function setTasksTheme(theme) {
     document.body.classList.remove('notebook', 'glass');
     if (theme === 'notebook') document.body.classList.add('notebook');
     else if (theme === 'glass') document.body.classList.add('glass');
     localStorage.setItem('tasksTheme', theme);
-    alert('Тема ежедневника «' + (theme === 'minimal' ? 'Minimal' : theme === 'notebook' ? 'Notebook' : 'Glass') + '» применена!');
   }
-
-  // Загрузка сохранённых тем
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme) setTheme(savedTheme);
   const savedChatTheme = localStorage.getItem('chatTheme');
@@ -251,12 +246,12 @@
     loadTasks();
   }
   function showRegistrationForm() {
-    authForm.innerHTML = '<h2>✨ Регистрация</h2><input id="regEmail" placeholder="Email"><input id="regPassword" type="password" placeholder="Пароль"><input id="regName" placeholder="Имя друга"><textarea id="characterInput" rows="2" placeholder="Характер" style="width:100%;margin-bottom:12px;border-radius:16px;border:none;padding:14px;background:#f2f2f7;"></textarea><input type="date" id="birthdateInput"><div class="avatar-grid" id="avatarGrid"></div><div class="mature-row"><input type="checkbox" id="matureCheckbox" disabled><label>Разрешить нецензурную лексику</label></div><button onclick="register()">Зарегистрироваться</button><p style="text-align:center;margin-top:12px;">Уже есть аккаунт? <a href="#" onclick="showLoginForm();return false;">Войти</a></p>';
+    authForm.innerHTML = '<h2 style="margin-bottom:16px;">✨ Регистрация</h2><input id="regEmail" placeholder="Email"><input id="regPassword" type="password" placeholder="Пароль"><input id="regName" placeholder="Имя друга"><textarea id="characterInput" rows="2" placeholder="Характер" style="width:100%;margin-bottom:12px;border-radius:16px;border:none;padding:14px;background:#f2f2f7;"></textarea><input type="date" id="birthdateInput"><div class="avatar-grid" id="avatarGrid"></div><div class="mature-row"><input type="checkbox" id="matureCheckbox" disabled><label>Разрешить нецензурную лексику</label></div><button onclick="register()">Зарегистрироваться</button><p style="text-align:center;margin-top:16px;">Уже есть аккаунт? <a href="#" onclick="showLoginForm();return false;">Войти</a></p>';
     buildAvatarGrid('cat'); document.getElementById('birthdateInput').addEventListener('input', updateMatureCheckbox);
     authScreen.classList.remove('hidden'); mainScreen.classList.add('hidden');
   }
   function showLoginForm(email='') {
-    authForm.innerHTML = `<h2>🔐 Вход</h2><input id="loginEmail" placeholder="Email" value="${email||''}"><input id="loginPassword" type="password" placeholder="Пароль"><button onclick="login()">Войти</button><p style="text-align:center;margin-top:12px;">Нет аккаунта? <a href="#" onclick="showRegistrationForm();return false;">Регистрация</a></p>`;
+    authForm.innerHTML = `<h2 style="margin-bottom:16px;">🔐 Вход</h2><input id="loginEmail" placeholder="Email" value="${email||''}"><input id="loginPassword" type="password" placeholder="Пароль"><button onclick="login()">Войти</button><p style="text-align:center;margin-top:16px;">Нет аккаунта? <a href="#" onclick="showRegistrationForm();return false;">Регистрация</a></p>`;
     authScreen.classList.remove('hidden'); mainScreen.classList.add('hidden');
   }
   function buildAvatarGrid(selectedId) {
