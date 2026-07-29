@@ -168,36 +168,38 @@
     document.getElementById('voiceBtn').style.display = 'inline-block';
   }
 
-  // ========== ФУНКЦИИ ТЕМ (исправлены) ==========
+  // ========== ФУНКЦИИ ТЕМ ==========
   function setTheme(theme) {
     document.body.classList.remove('dark', 'cosmic');
     if (theme === 'dark') document.body.classList.add('dark');
     else if (theme === 'cosmic') document.body.classList.add('cosmic');
     localStorage.setItem('theme', theme);
-    alert('Тема «' + (theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Космическая') + '» применена!');
   }
   function setChatTheme(theme) {
     document.body.classList.remove('chat-modern', 'chat-soft');
     if (theme === 'modern') document.body.classList.add('chat-modern');
     else if (theme === 'soft') document.body.classList.add('chat-soft');
     localStorage.setItem('chatTheme', theme);
-    alert('Тема чата «' + (theme === 'bubbles' ? 'Bubbles' : theme === 'modern' ? 'Modern' : 'Soft') + '» применена!');
   }
   function setTasksTheme(theme) {
     document.body.classList.remove('notebook', 'glass');
     if (theme === 'notebook') document.body.classList.add('notebook');
     else if (theme === 'glass') document.body.classList.add('glass');
     localStorage.setItem('tasksTheme', theme);
-    alert('Тема ежедневника «' + (theme === 'minimal' ? 'Minimal' : theme === 'notebook' ? 'Notebook' : 'Glass') + '» применена!');
   }
 
-  // Загружаем сохранённые темы при старте
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) setTheme(savedTheme);
-  const savedChatTheme = localStorage.getItem('chatTheme');
-  if (savedChatTheme) setChatTheme(savedChatTheme);
-  const savedTasksTheme = localStorage.getItem('tasksTheme');
-  if (savedTasksTheme) setTasksTheme(savedTasksTheme);
+  // Загружаем только сохранённые темы
+  (function() {
+    const t = localStorage.getItem('theme');
+    if (t === 'dark') document.body.classList.add('dark');
+    else if (t === 'cosmic') document.body.classList.add('cosmic');
+    const ct = localStorage.getItem('chatTheme');
+    if (ct === 'modern') document.body.classList.add('chat-modern');
+    else if (ct === 'soft') document.body.classList.add('chat-soft');
+    const tt = localStorage.getItem('tasksTheme');
+    if (tt === 'notebook') document.body.classList.add('notebook');
+    else if (tt === 'glass') document.body.classList.add('glass');
+  })();
 
   function toggleTheme() {
     if (document.body.classList.contains('cosmic')) setTheme('dark');
