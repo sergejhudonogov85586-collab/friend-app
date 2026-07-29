@@ -52,7 +52,7 @@
     .tab-btn span { display: block; font-size: 22px; margin-bottom: 2px; }
     .shop-item { background: #f2f2f7; padding: 16px; margin-bottom: 12px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; }
     .buy-btn { background: var(--blue); color: white; border: none; border-radius: 16px; padding: 10px 18px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,132,255,0.3); }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
     /* Тёмная тема */
     body.dark { --bg: #1c1c1e; --card: #2c2c2e; --text: #ffffff; --sub: #8e8e93; --glass: rgba(44,44,46,0.8); }
     body.dark .msg.bot { background: #3a3a3c; }
@@ -226,7 +226,13 @@
     AVATARS.forEach(a => { const div = document.createElement('div'); div.className = 'avatar-option' + (a.id===selectedId?' selected':''); div.textContent = a.neutral; div.onclick = () => { grid.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected')); div.classList.add('selected'); }; grid.appendChild(div); });
   }
   function updateMatureCheckbox() { const bdate = document.getElementById('birthdateInput').value, cb = document.getElementById('matureCheckbox'); if (!bdate) { cb.disabled = true; cb.checked = false; return; } cb.disabled = Math.floor((new Date() - new Date(bdate))/31557600000) < 18; if (cb.disabled) cb.checked = false; }
-  function showMain() { authScreen.classList.add('hidden'); mainScreen.classList.remove('hidden'); document.getElementById('header-name').textContent = currentUser.name; }
+  function showMain() {
+    authScreen.classList.add('hidden');
+    mainScreen.classList.remove('hidden');
+    document.getElementById('header-name').textContent = currentUser.name;
+    document.getElementById('chat-panel').classList.add('active');
+    document.getElementById('input-area').style.display = 'flex';
+  }
   function getAvatarEmotion(id, emotion) { if (!id) id = 'cat'; const av = AVATARS.find(a => a.id === id); return av ? (av[emotion] || av.neutral) : '😺'; }
   function addMessage(type, text, avatarId, emotion = 'neutral') {
     if (!avatarId) avatarId = currentUser?.avatar || 'cat';
