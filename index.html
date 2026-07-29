@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0084ff">
   <title>Друг</title>
+  <link rel="manifest" href="manifest.json">
   <style>
     * { box-sizing: border-box; }
     html, body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f0f2f5; }
@@ -35,6 +36,7 @@
     #input-area { display:flex; padding:10px; border-top:1px solid #eee; gap:8px; background:white; padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
     #messageInput { flex:1; padding:12px 16px; border:1px solid #ddd; border-radius:25px; font-size:16px; }
     #sendBtn { padding:12px 20px; background:#0084ff; color:white; border:none; border-radius:25px; font-size:20px; cursor:pointer; }
+    #voiceBtn { padding:12px; background:#0084ff; color:white; border:none; border-radius:25px; font-size:20px; cursor:pointer; display:inline-block; }
     #tab-bar { display:flex; border-top:1px solid #eee; background:white; padding-bottom:env(safe-area-inset-bottom, 0px); }
     .tab-btn { flex:1; text-align:center; padding:8px; color:#888; font-size:12px; border:none; background:transparent; cursor:pointer; }
     .tab-btn.active { color:#0084ff; }
@@ -42,6 +44,7 @@
     .shop-item { background:white; padding:15px; margin-bottom:12px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
     .buy-btn { background:#0084ff; color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; }
     .hidden { display:none; }
+    /* Темы */
     body.dark { background:#1e1e1e; }
     body.dark #app { background:#2d2d2d; color:#eee; }
     body.dark #auth-screen { background:#2d2d2d; }
@@ -53,10 +56,23 @@
     body.dark .msg.bot { background:#3a3a3a; }
     body.dark .tab-btn { color:#aaa; }
     body.dark .tab-btn.active { color:#0084ff; }
+    body.cosmic { background:#0b0b2a; }
+    body.cosmic #app { background:#1a1a4e; color:#c0c0ff; }
+    body.cosmic #auth-screen { background:#1a1a4e; }
+    body.cosmic #main-screen { background:#1a1a4e; }
+    body.cosmic #header { background:#0b0b2a; background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="white" opacity="0.5"/><circle cx="80" cy="30" r="1.5" fill="white" opacity="0.6"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.4"/></svg>'); }
+    body.cosmic #input-area { background:#1a1a4e; border-color:#333; }
+    body.cosmic #messageInput { background:#2a2a5e; border-color:#444; color:#c0c0ff; }
+    body.cosmic #tab-bar { background:#1a1a4e; border-color:#333; }
+    body.cosmic .msg.bot { background:#2a2a5e; }
+    body.cosmic .tab-btn { color:#8888cc; }
+    body.cosmic .tab-btn.active { color:#00c6ff; }
+    body.cosmic .buy-btn { background:#00c6ff; }
     #calendarModal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
     #calendarModal.active { display:flex; }
     #calendarBox { background:white; border-radius:16px; padding:20px; width:90%; max-width:350px; }
     body.dark #calendarBox { background:#2d2d2d; }
+    body.cosmic #calendarBox { background:#1a1a4e; }
     #calendarGrid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
     #calendarGrid div { padding:8px; text-align:center; border-radius:8px; cursor:pointer; }
     #calendarGrid .holiday { color:red; }
@@ -106,12 +122,13 @@
           <div><strong>Друг Premium</strong><br><small>Все функции, безлимит, темы</small></div>
           <button class="buy-btn" style="background: white; color: #0084ff;" onclick="alert('Подписка 399₽/мес (прототип)')">399₽/мес</button>
         </div>
-        <div class="shop-item"><div><strong>Тема чата: Космос</strong></div><button class="buy-btn" onclick="alert('Куплено!')">99₽</button></div>
+        <div class="shop-item"><div><strong>Тема чата: Космос</strong></div><button class="buy-btn" onclick="activateCosmicTheme()">99₽</button></div>
         <div class="shop-item"><div><strong>Аватар: Феникс</strong></div><button class="buy-btn" onclick="alert('Куплено!')">149₽</button></div>
       </div>
     </div>
     <div id="input-area">
       <input type="text" id="messageInput" placeholder="Напиши Другу...">
+      <button id="voiceBtn" onclick="startVoice()" title="Голосовой ввод">🎤</button>
       <button id="sendBtn" onclick="sendMessage()">➤</button>
     </div>
     <div id="tab-bar">
@@ -142,6 +159,18 @@
   let tttBoard = ['','','','','','','','',''], tttTurn = 'X';
   const authScreen = document.getElementById('auth-screen'), mainScreen = document.getElementById('main-screen'), authForm = document.getElementById('auth-form');
 
+  // Голосовой ввод
+  let recognition = null;
+  if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      document.getElementById('messageInput').value = event.results[0][0].transcript;
+    };
+    document.getElementById('voiceBtn').style.display = 'inline-block';
+  }
+
   window.onload = () => {
     const savedEmail = localStorage.getItem('friendEmail');
     if (savedEmail) showLoginForm(savedEmail); else showRegistrationForm();
@@ -158,8 +187,31 @@
       });
     });
   };
-  function toggleTheme() { document.body.classList.toggle('dark'); localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light'); }
+
+  function toggleTheme() {
+    if (document.body.classList.contains('cosmic')) {
+      document.body.classList.remove('cosmic');
+      document.body.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else if (document.body.classList.contains('dark')) {
+      document.body.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.body.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
   if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+  else if (localStorage.getItem('theme') === 'cosmic') document.body.classList.add('cosmic');
+
+  function activateCosmicTheme() {
+    document.body.classList.remove('dark');
+    document.body.classList.add('cosmic');
+    localStorage.setItem('theme', 'cosmic');
+    alert('Космическая тема активирована!');
+  }
+
+  function startVoice() { if (recognition) recognition.start(); }
 
   function openCalendar() { document.getElementById('calendarModal').classList.add('active'); renderCalendarGrid(); }
   function closeCalendar() { document.getElementById('calendarModal').classList.remove('active'); }
