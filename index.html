@@ -31,7 +31,7 @@
     .msg { margin-bottom:12px; padding:10px 14px; border-radius:20px; max-width:80%; display:flex; align-items:flex-end; gap:8px; }
     .msg.user { background:#0084ff; color:white; margin-left:auto; flex-direction:row-reverse; }
     .msg.bot { background:#f0f0f0; }
-    .avatar-icon { width:36px; height:36px; border-radius:18px; background:#e0e0e0; display:flex; align-items:center; justify-content:center; }
+    .avatar-icon { width:36px; height:36px; border-radius:18px; background:#e0e0e0; display:flex; align-items:center; justify-content:center; font-size:28px; }
     #input-area { display:flex; padding:10px; border-top:1px solid #eee; gap:8px; background:white; padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
     #messageInput { flex:1; padding:12px 16px; border:1px solid #ddd; border-radius:25px; font-size:16px; }
     #sendBtn { padding:12px 20px; background:#0084ff; color:white; border:none; border-radius:25px; font-size:20px; cursor:pointer; }
@@ -227,17 +227,19 @@
     document.getElementById('header-name').textContent = currentUser.name;
   }
   function getAvatarEmotion(id, emotion) {
+    if (!id) id = 'cat';
     const av = AVATARS.find(a => a.id === id);
     return av ? (av[emotion] || av.neutral) : '😺';
   }
   function addMessage(type, text, avatarId, emotion = 'neutral') {
+    if (!avatarId) avatarId = currentUser?.avatar || 'cat';
     const chat = document.getElementById('chat-panel');
     const div = document.createElement('div');
     div.className = 'msg ' + type;
     if (type === 'bot') {
       const icon = document.createElement('span');
       icon.className = 'avatar-icon';
-      icon.textContent = getAvatarEmotion(avatarId || currentUser.avatar, emotion);
+      icon.textContent = getAvatarEmotion(avatarId, emotion);
       div.appendChild(icon);
       const span = document.createElement('span');
       span.textContent = text;
@@ -250,19 +252,29 @@
     const email = document.getElementById('regEmail').value.trim(), password = document.getElementById('regPassword').value;
     const name = document.getElementById('regName').value.trim()||'Друг', character = document.getElementById('characterInput').value.trim()||'';
     const birthdate = document.getElementById('birthdateInput').value;
+    const selectedAvatar = document.querySelector('.avatar-option.selected')?.dataset.id || 'cat';
     if (!email||!password) { alert('Введите email и пароль'); return; }
     const check = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
     if ((await check.json()).length) { alert('Пользователь уже существует'); return; }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify({ email, password, name, character, birthdate, avatar: 'cat', memory: '' }) });
-    if ((await res.json()).length) { localStorage.setItem('friendEmail', email); currentUser = { email, name, character, birthdate, avatar: 'cat', matureAllowed: false }; showMain(); addMessage('bot', 'Привет, я '+name+'!', 'cat'); }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify({ email, password, name, character, birthdate, avatar: selectedAvatar, memory: '' }) });
+    const data = await res.json();
+    if (data && data.length) {
+      localStorage.setItem('friendEmail', email);
+      currentUser = { email, name, character, birthdate, avatar: selectedAvatar, matureAllowed: false };
+      showMain(); addMessage('bot', 'Привет, я '+name+'!', selectedAvatar);
+    } else { alert('Ошибка регистрации'); }
   }
   async function login() {
     const email = document.getElementById('loginEmail').value.trim(), password = document.getElementById('loginPassword').value;
     if (!email||!password) { alert('Введите email и пароль'); return; }
     const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
     const data = await res.json();
-    if (data.length) { const u = data[0]; localStorage.setItem('friendEmail', email); currentUser = { email: u.email, name: u.name, character: u.character, birthdate: u.birthdate, avatar: u.avatar, matureAllowed: (new Date().getFullYear()-new Date(u.birthdate).getFullYear())>=18 }; showMain(); addMessage('bot', 'С возвращением, '+currentUser.name+'!', currentUser.avatar); }
-    else { alert('Неверный email или пароль'); }
+    if (data.length) {
+      const u = data[0];
+      localStorage.setItem('friendEmail', email);
+      currentUser = { email: u.email, name: u.name, character: u.character, birthdate: u.birthdate, avatar: u.avatar || 'cat', matureAllowed: (new Date().getFullYear()-new Date(u.birthdate).getFullYear())>=18 };
+      showMain(); addMessage('bot', 'С возвращением, '+currentUser.name+'!', currentUser.avatar);
+    } else { alert('Неверный email или пароль'); }
   }
   async function sendMessage() {
     if (!currentUser) return;
@@ -272,8 +284,10 @@
     const typingMsg = addMessage('bot', 'Друг печатает...', currentUser.avatar, 'thinking');
     try {
       const res = await fetch(AI_CHAT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, friendName: currentUser.name, character: currentUser.character, allowMature: currentUser.matureAllowed, history: dialogHistory.slice(-30), email: currentUser.email }) });
-      const data = await res.json(); typingMsg.querySelector('span:last-child').textContent = data.reply || 'Прости, я задумался...';
-      dialogHistory.push({ role: 'assistant', text: data.reply });
+      const data = await res.json();
+      const reply = data.reply || 'Прости, я задумался...';
+      typingMsg.querySelector('span:last-child').textContent = reply;
+      dialogHistory.push({ role: 'assistant', text: reply });
     } catch (e) { typingMsg.querySelector('span:last-child').textContent = 'Ошибка соединения'; }
   }
   function checkGuess() {
