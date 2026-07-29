@@ -42,6 +42,13 @@
     .shop-item { background:white; padding:15px; margin-bottom:12px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
     .buy-btn { background:#0084ff; color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; }
     .hidden { display:none; }
+    /* Календарь */
+    #calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    #calendar div { padding: 8px; text-align: center; background: #f0f0f0; border-radius: 8px; }
+    #calendar .today { background: #0084ff; color: white; }
+    /* Крестики-нолики */
+    #tic-tac-toe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; }
+    #tic-tac-toe div { aspect-ratio: 1; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -57,7 +64,9 @@
     <div id="content">
       <div id="chat-panel" class="panel active"></div>
       <div id="tasks-panel" class="panel">
-        <h3>📝 Мои задачи</h3>
+        <h3>📝 Ежедневник</h3>
+        <div id="calendar"></div>
+        <h4>Мои задачи</h4>
         <div id="tasksList">Пока нет задач</div>
         <button class="buy-btn" onclick="addTaskManually()" style="margin-top:10px; width:100%;">+ Добавить задачу</button>
       </div>
@@ -68,6 +77,12 @@
           <p id="gameMessage">Я загадал число от 1 до 100.</p>
           <input type="number" id="guessInput" placeholder="Твой вариант">
           <button class="buy-btn" onclick="checkGuess()">Проверить</button>
+        </div>
+        <div class="game-container" style="margin-top:20px;">
+          <h4>Крестики-нолики</h4>
+          <div id="tic-tac-toe"></div>
+          <p id="tttMessage"></p>
+          <button class="buy-btn" onclick="resetTicTacToe()">Новая игра</button>
         </div>
       </div>
       <div id="shop-panel" class="panel">
@@ -92,7 +107,7 @@
     </div>
     <div id="tab-bar">
       <button class="tab-btn active" data-panel="chat-panel"><span>💬</span>Чат</button>
-      <button class="tab-btn" data-panel="tasks-panel"><span>📋</span>Задачи</button>
+      <button class="tab-btn" data-panel="tasks-panel"><span>📋</span>Ежедневник</button>
       <button class="tab-btn" data-panel="games-panel"><span>🎮</span>Игры</button>
       <button class="tab-btn" data-panel="shop-panel"><span>🛍️</span>Магазин</button>
     </div>
@@ -100,10 +115,8 @@
 </div>
 
 <script>
-  // Конфигурация Supabase
   const SUPABASE_URL = 'https://pvofbfvqhwkvrhnoqugc.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Ei3qoPtQnf3eH3aKf93h8w_F902ErzV';
-  // URL для AI-чата (временно заглушка, позже заменим на Edge Function)
   const AI_CHAT_URL = 'https://pvofbfvqhwkvrhnoqugc.supabase.co/functions/v1/ai-chat';
 
   const AVATARS = [
@@ -118,6 +131,8 @@
   let currentUser = null;
   let dialogHistory = [];
   let secretNumber = Math.floor(Math.random() * 100) + 1;
+  let tttBoard = ['', '', '', '', '', '', '', '', ''];
+  let tttTurn = 'X';
 
   const authScreen = document.getElementById('auth-screen');
   const mainScreen = document.getElementById('main-screen');
@@ -125,11 +140,8 @@
 
   window.onload = () => {
     const savedEmail = localStorage.getItem('friendEmail');
-    if (savedEmail) {
-      showLoginForm(savedEmail);
-    } else {
-      showRegistrationForm();
-    }
+    if (savedEmail) { showLoginForm(savedEmail); }
+    else { showRegistrationForm(); }
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -138,10 +150,16 @@
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(panelId).classList.add('active');
         document.getElementById('input-area').style.display = (panelId === 'chat-panel') ? 'flex' : 'none';
+        if (panelId === 'tasks-panel') renderCalendar();
+        if (panelId === 'games-panel') renderTicTacToe();
       });
     });
+    if (document.getElementById('chat-panel').classList.contains('active')) {
+      document.getElementById('input-area').style.display = 'flex';
+    }
   };
 
+  // ========== АВТОРИЗАЦИЯ ==========
   function showRegistrationForm() {
     authForm.innerHTML = '<h2>✨ Регистрация</h2>' +
       '<input id="regEmail" placeholder="Email">' +
@@ -161,7 +179,6 @@
     authScreen.classList.remove('hidden');
     mainScreen.classList.add('hidden');
   }
-
   function showLoginForm(email = '') {
     authForm.innerHTML = '<h2>🔐 Вход</h2>' +
       '<input id="loginEmail" placeholder="Email" value="' + (email || '') + '">' +
@@ -171,47 +188,66 @@
     authScreen.classList.remove('hidden');
     mainScreen.classList.add('hidden');
   }
-
-  function buildAvatarGrid(selectedId) {
-    const grid = document.getElementById('avatarGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    AVATARS.forEach(a => {
-      const div = document.createElement('div');
-      div.className = 'avatar-option' + (a.id === selectedId ? ' selected' : '');
-      div.textContent = a.neutral;
-      div.onclick = () => {
-        grid.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
-        div.classList.add('selected');
-      };
-      grid.appendChild(div);
-    });
+  async function register() {
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const name = document.getElementById('regName').value.trim() || 'Друг';
+    const character = document.getElementById('characterInput').value.trim() || '';
+    const birthdate = document.getElementById('birthdateInput').value;
+    const mature = document.getElementById('matureCheckbox');
+    const matureAllowed = !mature.disabled && mature.checked;
+    const selectedAvatar = document.querySelector('.avatar-option.selected')?.dataset.id || 'cat';
+    if (!email || !password) { alert('Введите email и пароль'); return; }
+    try {
+      const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      const existing = await checkRes.json();
+      if (existing && existing.length > 0) { alert('Пользователь уже существует'); return; }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify({ email, password, name, character, birthdate, avatar: selectedAvatar, memory: '' })
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        localStorage.setItem('friendEmail', email);
+        currentUser = { email, name, character, birthdate, avatar: selectedAvatar, matureAllowed };
+        showMain();
+        addMessage('bot', 'Привет, я ' + name + '!', selectedAvatar);
+      } else { alert('Ошибка регистрации: ' + JSON.stringify(data)); }
+    } catch (e) { alert('Сетевая ошибка: ' + e.message); }
+  }
+  async function login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { alert('Введите email и пароль'); return; }
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const user = data[0];
+        localStorage.setItem('friendEmail', email);
+        currentUser = { email: user.email, name: user.name, character: user.character, birthdate: user.birthdate, avatar: user.avatar, matureAllowed: (new Date().getFullYear() - new Date(user.birthdate).getFullYear()) >= 18 };
+        showMain();
+        addMessage('bot', 'С возвращением, ' + currentUser.name + '!', currentUser.avatar);
+      } else { alert('Неверный email или пароль'); }
+    } catch (e) { alert('Сетевая ошибка: ' + e.message); }
   }
 
-  function updateMatureCheckbox() {
-    const bdate = document.getElementById('birthdateInput').value;
-    const cb = document.getElementById('matureCheckbox');
-    if (!bdate) { cb.disabled = true; cb.checked = false; return; }
-    const age = Math.floor((new Date() - new Date(bdate)) / 31557600000);
-    cb.disabled = age < 18;
-    if (age < 18) cb.checked = false;
-  }
-
+  // ========== ИНТЕРФЕЙС ==========
   function showMain() {
     authScreen.classList.add('hidden');
     mainScreen.classList.remove('hidden');
     document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
     document.getElementById('header-name').textContent = currentUser.name;
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('chat-panel').classList.add('active');
-    document.getElementById('input-area').style.display = 'flex';
   }
-
   function getAvatarEmotion(id, emotion) {
     const av = AVATARS.find(a => a.id === id);
     return av ? (av[emotion] || av.neutral) : '😺';
   }
-
   function addMessage(type, text, avatarId, emotion = 'neutral') {
     const chat = document.getElementById('chat-panel');
     const div = document.createElement('div');
@@ -224,91 +260,13 @@
       const span = document.createElement('span');
       span.textContent = text;
       div.appendChild(span);
-    } else {
-      div.textContent = text;
-    }
+    } else { div.textContent = text; }
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
     return div;
   }
 
-  async function register() {
-    const email = document.getElementById('regEmail').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const name = document.getElementById('regName').value.trim() || 'Друг';
-    const character = document.getElementById('characterInput').value.trim() || '';
-    const birthdate = document.getElementById('birthdateInput').value;
-    const mature = document.getElementById('matureCheckbox');
-    const matureAllowed = !mature.disabled && mature.checked;
-    const selectedAvatar = document.querySelector('.avatar-option.selected')?.dataset.id || 'cat';
-    if (!email || !password) { alert('Введите email и пароль'); return; }
-
-    try {
-      const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      const existing = await checkRes.json();
-      if (existing && existing.length > 0) {
-        alert('Пользователь уже существует');
-        return;
-      }
-
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({ email, password, name, character, birthdate, avatar: selectedAvatar, memory: '' })
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        localStorage.setItem('friendEmail', email);
-        currentUser = { email, name, character, birthdate, avatar: selectedAvatar, matureAllowed };
-        showMain();
-        addMessage('bot', 'Привет, я ' + name + '!', selectedAvatar);
-      } else {
-        alert('Ошибка регистрации: ' + JSON.stringify(data));
-      }
-    } catch (e) {
-      alert('Сетевая ошибка: ' + e.message);
-    }
-  }
-
-  async function login() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    if (!email || !password) { alert('Введите email и пароль'); return; }
-
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const user = data[0];
-        localStorage.setItem('friendEmail', email);
-        currentUser = {
-          email: user.email,
-          name: user.name,
-          character: user.character,
-          birthdate: user.birthdate,
-          avatar: user.avatar,
-          matureAllowed: (new Date().getFullYear() - new Date(user.birthdate).getFullYear()) >= 18
-        };
-        showMain();
-        addMessage('bot', 'С возвращением, ' + currentUser.name + '!', currentUser.avatar);
-      } else {
-        alert('Неверный email или пароль');
-      }
-    } catch (e) {
-      alert('Сетевая ошибка: ' + e.message);
-    }
-  }
-
-  // AI-чат (если AI_CHAT_URL задан – используется Edge Function, иначе заглушка)
+  // ========== ЧАТ С AI ==========
   async function sendMessage() {
     if (!currentUser) return;
     const input = document.getElementById('messageInput');
@@ -317,58 +275,94 @@
     addMessage('user', msg);
     dialogHistory.push({ role: 'user', text: msg });
     input.value = '';
-
     const typingMsg = addMessage('bot', 'Друг печатает...', currentUser.avatar, 'thinking');
-
-    if (AI_CHAT_URL) {
-      try {
-        const res = await fetch(AI_CHAT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: msg,
-            friendName: currentUser.name,
-            character: currentUser.character,
-            allowMature: currentUser.matureAllowed,
-            history: dialogHistory.slice(-10)
-          })
-        });
-        const data = await res.json();
-        const reply = data.reply || 'Прости, я задумался...';
-        typingMsg.querySelector('span:last-child').textContent = reply;
-        const av = typingMsg.querySelector('.avatar-icon');
-        if (av) {
-          let emotion = 'neutral';
-          if (reply.match(/[😄😂🤣😊😁]/)) emotion = 'happy';
-          else if (reply.match(/[🤔❓💭]/)) emotion = 'thinking';
-          av.textContent = getAvatarEmotion(currentUser.avatar, emotion);
-        }
-        dialogHistory.push({ role: 'assistant', text: reply });
-      } catch (e) {
-        typingMsg.querySelector('span:last-child').textContent = 'Ошибка соединения';
+    try {
+      const res = await fetch(AI_CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg,
+          friendName: currentUser.name,
+          character: currentUser.character,
+          allowMature: currentUser.matureAllowed,
+          history: dialogHistory.slice(-20) // передаём последние 20 сообщений для контекста
+        })
+      });
+      const data = await res.json();
+      const reply = data.reply || 'Прости, я задумался...';
+      typingMsg.querySelector('span:last-child').textContent = reply;
+      const av = typingMsg.querySelector('.avatar-icon');
+      if (av) {
+        let emotion = 'neutral';
+        if (reply.match(/[😄😂🤣😊😁]/)) emotion = 'happy';
+        else if (reply.match(/[🤔❓💭]/)) emotion = 'thinking';
+        av.textContent = getAvatarEmotion(currentUser.avatar, emotion);
       }
-    } else {
-      // Заглушка
-      setTimeout(() => {
-        typingMsg.querySelector('span:last-child').textContent = 'Это эхо: «' + msg + '». AI-чат появится после развёртывания функции.';
-        typingMsg.querySelector('.avatar-icon').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
-      }, 500);
-    }
+      dialogHistory.push({ role: 'assistant', text: reply });
+    } catch (e) { typingMsg.querySelector('span:last-child').textContent = 'Ошибка соединения'; }
   }
 
+  // ========== ИГРЫ ==========
   function checkGuess() {
     const guess = parseInt(document.getElementById('guessInput').value);
     const msg = document.getElementById('gameMessage');
     if (guess === secretNumber) {
       msg.textContent = 'Поздравляю! Ты угадал! Загадано новое число.';
       secretNumber = Math.floor(Math.random() * 100) + 1;
-    } else if (guess > secretNumber) {
-      msg.textContent = 'Меньше!';
-    } else {
-      msg.textContent = 'Больше!';
+    } else if (guess > secretNumber) { msg.textContent = 'Меньше!'; }
+    else { msg.textContent = 'Больше!'; }
+  }
+  function renderTicTacToe() {
+    const board = document.getElementById('tic-tac-toe');
+    board.innerHTML = '';
+    tttBoard.forEach((cell, i) => {
+      const div = document.createElement('div');
+      div.textContent = cell;
+      div.onclick = () => tttMove(i);
+      board.appendChild(div);
+    });
+  }
+  function tttMove(i) {
+    if (tttBoard[i] || checkTTTWin()) return;
+    tttBoard[i] = tttTurn;
+    tttTurn = tttTurn === 'X' ? 'O' : 'X';
+    renderTicTacToe();
+    const winner = checkTTTWin();
+    if (winner) {
+      document.getElementById('tttMessage').textContent = winner === 'draw' ? 'Ничья!' : `Победил ${winner}!`;
     }
   }
+  function checkTTTWin() {
+    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (let line of lines) {
+      if (tttBoard[line[0]] && tttBoard[line[0]] === tttBoard[line[1]] && tttBoard[line[0]] === tttBoard[line[2]]) return tttBoard[line[0]];
+    }
+    if (tttBoard.every(cell => cell)) return 'draw';
+    return null;
+  }
+  function resetTicTacToe() {
+    tttBoard = ['', '', '', '', '', '', '', '', ''];
+    tttTurn = 'X';
+    document.getElementById('tttMessage').textContent = '';
+    renderTicTacToe();
+  }
 
+  // ========== ЕЖЕДНЕВНИК ==========
+  function renderCalendar() {
+    const cal = document.getElementById('calendar');
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay() || 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let html = '<div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>';
+    for (let i = 1; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cls = (d === today.getDate()) ? 'today' : '';
+      html += `<div class="${cls}">${d}</div>`;
+    }
+    cal.innerHTML = html;
+  }
   function addTaskManually() {
     const task = prompt('Введите задачу:');
     if (task) {
