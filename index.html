@@ -34,20 +34,17 @@
     .mature-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
     #main-screen { background: var(--card); display: flex; flex-direction: column; height: 100%; }
     #header { background: var(--glass); backdrop-filter: blur(20px); color: var(--text); padding: 16px 20px; display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; border-bottom: 1px solid rgba(0,0,0,0.05); }
-    #header-avatar { width: 44px; height: 44px; }
+    #header-avatar { width: 44px; height: 44px; font-size: 32px; display: flex; align-items: center; justify-content: center; }
     #content { flex: 1; overflow-y: auto; padding: 20px; }
     .panel { display: none; }
     .panel.active { display: block; }
-    /* Темы сообщений */
+    /* Сообщения */
     .msg { margin-bottom: 16px; padding: 12px 16px; max-width: 85%; display: flex; align-items: flex-end; gap: 10px; animation: fadeIn 0.3s ease; }
     .msg.user { background: var(--blue); color: white; margin-left: auto; flex-direction: row-reverse; }
     .msg.bot { background: #f2f2f7; }
-    /* Bubbles (по умолчанию) */
     .msg { border-radius: 20px; }
-    /* Modern */
     body.chat-modern .msg.user { border-radius: 20px 20px 4px 20px; }
     body.chat-modern .msg.bot { border-radius: 20px 20px 20px 4px; }
-    /* Soft */
     body.chat-soft .msg { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } }
     .avatar-icon { width: 36px; height: 36px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 24px; }
@@ -59,18 +56,18 @@
     .tab-btn { flex: 1; text-align: center; padding: 10px; color: var(--sub); font-size: 12px; border: none; background: transparent; cursor: pointer; transition: 0.2s; }
     .tab-btn.active { color: var(--blue); font-weight: 600; }
     .tab-btn span { display: block; font-size: 22px; margin-bottom: 2px; }
-    /* Магазин */
     .shop-item { background: #f2f2f7; padding: 16px; margin-bottom: 12px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
     .shop-item:hover { transform: scale(1.02); }
     .shop-item.premium { background: linear-gradient(135deg, #0084ff, #00c6ff); color: white; }
     .buy-btn { background: var(--blue); color: white; border: none; border-radius: 16px; padding: 10px 18px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,132,255,0.3); }
     .hidden { display: none !important; }
-    /* Темы */
+    /* Тёмная тема */
     body.dark { --bg: #1c1c1e; --card: #2c2c2e; --text: #ffffff; --sub: #8e8e93; --glass: rgba(44,44,46,0.8); }
     body.dark .msg.bot { background: #3a3a3c; }
     body.dark #messageInput { background: #3a3a3c; color: white; }
     body.dark #auth-screen input, body.dark #auth-screen textarea { background: #3a3a3c; color: white; }
     body.dark .shop-item { background: #3a3a3c; }
+    /* Космическая тема */
     body.cosmic { --bg: #0b0b2a; --card: #1a1a4e; --text: #c0c0ff; --sub: #8888cc; --blue: #00c6ff; --glass: rgba(26,26,78,0.8); }
     body.cosmic .msg.bot { background: #2a2a5e; }
     body.cosmic #messageInput { background: #2a2a5e; color: #c0c0ff; }
@@ -94,13 +91,7 @@
   <div id="auth-screen" class="screen"><div id="auth-form"></div></div>
   <div id="main-screen" class="screen hidden">
     <div id="header">
-      <svg id="avatar2d" viewBox="0 0 100 100" width="44" height="44">
-        <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFD93D;stop-opacity:1" /><stop offset="100%" style="stop-color:#FF6B35;stop-opacity:1" /></linearGradient></defs>
-        <circle cx="50" cy="50" r="45" fill="url(#grad)"/>
-        <circle cx="35" cy="40" r="5" fill="#333" class="eye"/>
-        <circle cx="65" cy="40" r="5" fill="#333" class="eye"/>
-        <path d="M 35 60 Q 50 70 65 60" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
-      </svg>
+      <div id="header-avatar"></div>
       <span id="header-name">Друг</span>
       <button onclick="toggleTheme()" style="margin-left:auto; background:none; border:none; color:var(--text); font-size:24px;">🌓</button>
     </div>
@@ -201,7 +192,6 @@
     });
   };
 
-  // Управление темами
   function setTheme(theme) {
     document.body.classList.remove('dark', 'cosmic');
     if (theme === 'dark') document.body.classList.add('dark');
@@ -220,7 +210,6 @@
     else if (theme === 'glass') document.body.classList.add('glass');
     localStorage.setItem('tasksTheme', theme);
   }
-  // Загрузка сохранённых тем
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme) setTheme(savedTheme);
   const savedChatTheme = localStorage.getItem('chatTheme');
@@ -280,6 +269,7 @@
     authScreen.classList.add('hidden');
     mainScreen.classList.remove('hidden');
     document.getElementById('header-name').textContent = currentUser.name;
+    document.getElementById('header-avatar').textContent = getAvatarEmotion(currentUser.avatar, 'neutral');
     document.getElementById('chat-panel').classList.add('active');
     document.getElementById('input-area').style.display = 'flex';
   }
