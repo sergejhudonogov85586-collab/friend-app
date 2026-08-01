@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light" data-chat="bubbles" data-tasks="minimal">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#0084ff">
   <title>Друг</title>
   <style>
-    /* Базовые стили (светлая тема) */
     :root {
       --bg: #f0f2f5;
       --card: #ffffff;
@@ -42,6 +41,9 @@
     .msg.user { background: var(--blue); color: white; margin-left: auto; flex-direction: row-reverse; }
     .msg.bot { background: #f2f2f7; }
     .msg { border-radius: 20px; }
+    body.chat-modern .msg.user { border-radius: 20px 20px 4px 20px; }
+    body.chat-modern .msg.bot { border-radius: 20px 20px 20px 4px; }
+    body.chat-soft .msg { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } }
     .avatar-icon { width: 36px; height: 36px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 24px; }
     #input-area { display: flex; padding: 16px; border-top: 1px solid rgba(0,0,0,0.05); gap: 8px; background: var(--card); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
@@ -57,6 +59,22 @@
     .shop-item.premium { background: linear-gradient(135deg, #0084ff, #00c6ff); color: white; }
     .buy-btn { background: var(--blue); color: white; border: none; border-radius: 16px; padding: 10px 18px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,132,255,0.3); }
     .hidden { display: none !important; }
+    /* Тёмная тема */
+    body.dark { --bg: #1c1c1e; --card: #2c2c2e; --text: #ffffff; --sub: #8e8e93; --glass: rgba(44,44,46,0.8); }
+    body.dark .msg.bot { background: #3a3a3c; }
+    body.dark #messageInput { background: #3a3a3c; color: white; }
+    body.dark #auth-screen input, body.dark #auth-screen textarea { background: #3a3a3c; color: white; }
+    body.dark .shop-item { background: #3a3a3c; }
+    /* Космическая тема */
+    body.cosmic { --bg: #0b0b2a; --card: #1a1a4e; --text: #c0c0ff; --sub: #8888cc; --blue: #00c6ff; --glass: rgba(26,26,78,0.8); }
+    body.cosmic .msg.bot { background: #2a2a5e; }
+    body.cosmic #messageInput { background: #2a2a5e; color: #c0c0ff; }
+    body.cosmic #auth-screen input, body.cosmic #auth-screen textarea { background: #2a2a5e; color: #c0c0ff; }
+    body.cosmic .shop-item { background: #2a2a5e; }
+    body.cosmic .buy-btn { background: #00c6ff; }
+    /* Темы ежедневника */
+    body.notebook .task-item { background: repeating-linear-gradient(#fff, #fff 39px, #e0e0e0 40px); border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: 'Courier New', monospace; }
+    body.glass .task-item { background: rgba(255,255,255,0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
     #calendarModal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 1000; }
     #calendarModal.active { display: flex; }
     #calendarBox { background: var(--card); border-radius: 24px; padding: 24px; width: 90%; max-width: 350px; }
@@ -64,30 +82,6 @@
     #calendarGrid div { padding: 10px; text-align: center; border-radius: 12px; cursor: pointer; font-weight: 500; }
     #calendarGrid .holiday { color: #ff3b30; }
     #calendarGrid .today { background: var(--blue); color: white; }
-
-    /* Тёмная тема (data-theme="dark") */
-    html[data-theme="dark"] { --bg: #1c1c1e; --card: #2c2c2e; --text: #ffffff; --sub: #8e8e93; --glass: rgba(44,44,46,0.8); }
-    html[data-theme="dark"] .msg.bot { background: #3a3a3c; }
-    html[data-theme="dark"] #messageInput { background: #3a3a3c; color: white; }
-    html[data-theme="dark"] #auth-screen input, html[data-theme="dark"] #auth-screen textarea { background: #3a3a3c; color: white; }
-    html[data-theme="dark"] .shop-item { background: #3a3a3c; }
-
-    /* Космическая тема (data-theme="cosmic") */
-    html[data-theme="cosmic"] { --bg: #0b0b2a; --card: #1a1a4e; --text: #c0c0ff; --sub: #8888cc; --blue: #00c6ff; --glass: rgba(26,26,78,0.8); }
-    html[data-theme="cosmic"] .msg.bot { background: #2a2a5e; }
-    html[data-theme="cosmic"] #messageInput { background: #2a2a5e; color: #c0c0ff; }
-    html[data-theme="cosmic"] #auth-screen input, html[data-theme="cosmic"] #auth-screen textarea { background: #2a2a5e; color: #c0c0ff; }
-    html[data-theme="cosmic"] .shop-item { background: #2a2a5e; }
-    html[data-theme="cosmic"] .buy-btn { background: #00c6ff; }
-
-    /* Темы чата */
-    html[data-chat="modern"] .msg.user { border-radius: 20px 20px 4px 20px; }
-    html[data-chat="modern"] .msg.bot { border-radius: 20px 20px 20px 4px; }
-    html[data-chat="soft"] .msg { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-
-    /* Темы ежедневника */
-    html[data-tasks="notebook"] .task-item { background: repeating-linear-gradient(#fff, #fff 39px, #e0e0e0 40px); border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: 'Courier New', monospace; }
-    html[data-tasks="glass"] .task-item { background: rgba(255,255,255,0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
@@ -177,19 +171,25 @@
     document.getElementById('voiceBtn').style.display = 'inline-block';
   }
 
-  // ========== ФУНКЦИИ ТЕМ (через data-атрибуты) ==========
+  // ========== ФУНКЦИИ ТЕМ (ГАРАНТИРОВАННО РАБОТАЮТ) ==========
   function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.body.classList.remove('dark', 'cosmic');
+    if (theme === 'dark') document.body.classList.add('dark');
+    else if (theme === 'cosmic') document.body.classList.add('cosmic');
     localStorage.setItem('theme', theme);
     alert('Тема «' + (theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Космическая') + '» применена!');
   }
   function setChatTheme(theme) {
-    document.documentElement.setAttribute('data-chat', theme);
+    document.body.classList.remove('chat-modern', 'chat-soft');
+    if (theme === 'modern') document.body.classList.add('chat-modern');
+    else if (theme === 'soft') document.body.classList.add('chat-soft');
     localStorage.setItem('chatTheme', theme);
     alert('Тема чата «' + (theme === 'bubbles' ? 'Bubbles' : theme === 'modern' ? 'Modern' : 'Soft') + '» применена!');
   }
   function setTasksTheme(theme) {
-    document.documentElement.setAttribute('data-tasks', theme);
+    document.body.classList.remove('notebook', 'glass');
+    if (theme === 'notebook') document.body.classList.add('notebook');
+    else if (theme === 'glass') document.body.classList.add('glass');
     localStorage.setItem('tasksTheme', theme);
     alert('Тема ежедневника «' + (theme === 'minimal' ? 'Minimal' : theme === 'notebook' ? 'Notebook' : 'Glass') + '» применена!');
   }
@@ -197,17 +197,19 @@
   // Загружаем сохранённые темы при старте
   (function() {
     const t = localStorage.getItem('theme');
-    if (t) document.documentElement.setAttribute('data-theme', t);
+    if (t === 'dark') document.body.classList.add('dark');
+    else if (t === 'cosmic') document.body.classList.add('cosmic');
     const ct = localStorage.getItem('chatTheme');
-    if (ct) document.documentElement.setAttribute('data-chat', ct);
+    if (ct === 'modern') document.body.classList.add('chat-modern');
+    else if (ct === 'soft') document.body.classList.add('chat-soft');
     const tt = localStorage.getItem('tasksTheme');
-    if (tt) document.documentElement.setAttribute('data-tasks', tt);
+    if (tt === 'notebook') document.body.classList.add('notebook');
+    else if (tt === 'glass') document.body.classList.add('glass');
   })();
 
   function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme');
-    if (current === 'cosmic') setTheme('dark');
-    else if (current === 'dark') setTheme('light');
+    if (document.body.classList.contains('cosmic')) setTheme('dark');
+    else if (document.body.classList.contains('dark')) setTheme('light');
     else setTheme('dark');
   }
 
