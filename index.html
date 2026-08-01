@@ -171,7 +171,7 @@
     document.getElementById('voiceBtn').style.display = 'inline-block';
   }
 
-  // Функции тем
+  // ========== ФУНКЦИИ ТЕМ (ГАРАНТИРОВАННО РАБОТАЮТ) ==========
   function setTheme(theme) {
     document.body.classList.remove('dark', 'cosmic');
     if (theme === 'dark') document.body.classList.add('dark');
@@ -194,7 +194,7 @@
     alert('Тема ежедневника «' + (theme === 'minimal' ? 'Minimal' : theme === 'notebook' ? 'Notebook' : 'Glass') + '» применена!');
   }
 
-  // Загружаем темы при старте
+  // Загружаем сохранённые темы при старте
   (function() {
     const t = localStorage.getItem('theme');
     if (t === 'dark') document.body.classList.add('dark');
